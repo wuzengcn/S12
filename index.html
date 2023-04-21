@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Session 12. Logistic regression</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Wu Zeng, MD, PhD" />
+    <script src="libs/header-attrs-2.14/header-attrs.js"></script>
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="libs/remark-css-0.0.1/rladies.css" rel="stylesheet" />
+    <link href="libs/remark-css-0.0.1/rladies-fonts.css" rel="stylesheet" />
+    <link href="libs/panelset-0.2.6/panelset.css" rel="stylesheet" />
+    <script src="libs/panelset-0.2.6/panelset.js"></script>
+    <link href="libs/tile-view-0.2.6/tile-view.css" rel="stylesheet" />
+    <script src="libs/tile-view-0.2.6/tile-view.js"></script>
+    <link rel="stylesheet" href="libs/css/hygge-gu.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+
+
+class: title-slide, center, middle, inverse
+
+# Session 12. Logistic regression
+
+&lt;!--- ### &lt;br/&gt; Subtitle ---&gt;
+
+#### Wu Zeng, MD, PhD
+
+&lt;img src="libs/pic/GU.gif" width="10%" align="center" /&gt; 
+
+#### Department of Global Health
+
+#### Georgetown University
+
+### April 17 2023
+
+---
+
+# Contents 
+
+
+1. Why logistic regression 
+
+1. Model specification 
+
+1. Estimation of the model 
+
+1. Significant test of model and coefficients 
+
+1. Interpretation of model and coefficients 
+
+1. Realization in R 
+
+---
+
+# What if the outcome is a binary 
+
+### Examples 
+
+- Survived or death 
+
+- Having illness or not 
+
+### Bivariate relation
+
+- COVID-19 deaths and age
+
+---
+
+# Example: modified dataset of `mtcars`
+
+&lt;style type="text/css"&gt;
+table {
+  font-size: 12px;     
+}
+&lt;/style&gt;
+
+
+
+```r
+mydata &lt;- read.csv("https://stats.idre.ucla.edu/stat/data/binary.csv")
+head(mydata) %&gt;%
+  stargazer::stargazer(summary = F, type = "html")
+```
+
+
+&lt;table style="text-align:center"&gt;&lt;tr&gt;&lt;td colspan="5" style="border-bottom: 1px solid black"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style="text-align:left"&gt;&lt;/td&gt;&lt;td&gt;admit&lt;/td&gt;&lt;td&gt;gre&lt;/td&gt;&lt;td&gt;gpa&lt;/td&gt;&lt;td&gt;rank&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td colspan="5" style="border-bottom: 1px solid black"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style="text-align:left"&gt;1&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;td&gt;380&lt;/td&gt;&lt;td&gt;3.610&lt;/td&gt;&lt;td&gt;3&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;2&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;660&lt;/td&gt;&lt;td&gt;3.670&lt;/td&gt;&lt;td&gt;3&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;3&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;800&lt;/td&gt;&lt;td&gt;4&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;4&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;640&lt;/td&gt;&lt;td&gt;3.190&lt;/td&gt;&lt;td&gt;4&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;5&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;td&gt;520&lt;/td&gt;&lt;td&gt;2.930&lt;/td&gt;&lt;td&gt;4&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;6&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;760&lt;/td&gt;&lt;td&gt;3&lt;/td&gt;&lt;td&gt;2&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td colspan="5" style="border-bottom: 1px solid black"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+---
+
+# `admit` and `gpa`
+
+.pull-left[
+
+
+```r
+p1 &lt;- ggplot(mydata, aes(gpa, admit)) +
+  geom_point() +
+  theme_classic() + 
+  theme(text = element_text(size = 20))
+p1
+```
+]
+
+.pull-right[
+&lt;img src="index_files/figure-html/p1-1.png" height="500" style="display: block; margin: auto;" /&gt;
+]
+
+---
+
+```r
+p1 + stat_smooth(method = "lm", se = FALSE) +
+  stat_smooth(method = "glm", method.args = list(family = binomial), se=FALSE)
+```
+
+&lt;img src="index_files/figure-html/unnamed-chunk-3-1.png" height="550" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Why not linear regression  
+
+.pull-left[
+
+- Predicted values may lie outside the interval [0, 1].
+
+- Assumption of constant variance is violated as variance depends on x through its influence on p.
+ 
+ `\(var(\epsilon) = p_i(x)[1 – p_i(x)]\)`
+
+- Standard errors not valid, and conclusions from them misleading
+
+]
+.pull-right[
+
+&lt;center&gt;
+
+&lt;img src ="https://www.graphpad.com/guides/prism/latest/curve-fitting/images/hmfile_hash_a330202c.png" width = "350px" &gt;
+
+&lt;img src = "https://www.graphpad.com/guides/prism/latest/curve-fitting/images/hmfile_hash_38a8acae.png"  width = "350px"&gt;
+
+]
+
+---
+# Model specification for one independent variable
+
+.pull-left[
+
+`$$log\frac{p_{(y=1)}}{(1-p_{(y =1)})} = \beta_0 + \beta_1x$$`
+
+`$$p (y = 1) = \frac{e^{(\beta_0 + \beta_1x)}}{1+e^{(\beta_0 + \beta_1x)}}$$`
+
+```r
+x &lt;- seq(-15, 15, 0.1)
+y &lt;- 2+0.5*x
+y2 &lt;- exp(y)/(1+exp(y))
+nd1 &lt;- data.frame(x,y,y2)
+ggplot(data = nd1, mapping = aes(x = x, y = y2)) +
+  geom_line(color = "blue") +
+  labs(x = "x", y = "p(y=1)" ) +
+  theme_classic() +
+  theme(text = element_text(size = 15))
+```
+
+]
+
+.pull-right[
+
+&lt;img src="index_files/figure-html/mlog1-1.png" style="display: block; margin: auto;" /&gt;
+
+]
+---
+
+# How coefficient is estimated 
+
+Maximal likelihood estimation (MLE)
+
+
+We estimate `\(\beta_0\)` and `\(\beta_1\)` to maximize the likelihood function of obtain the observed sample
+
+&lt;br&gt;
+
+&gt; In statistics, maximum likelihood estimation (MLE) is a method of estimating the parameters of an assumed probability distribution, given some observed data. This is achieved by maximizing a likelihood function so that, under the assumed statistical model, the observed data is most probable
+
+&gt; --- &lt;cite&gt; wikipedia &lt;/cite&gt;
+
+---
+
+# Test overall goodness of fit of the model 
+
+`$$log\frac{p_{(y=1)}}{(1-p_{(y =1)})} = \beta_0 + \beta_1x$$`
+
+`\(H_0: \beta_1 = 0\)`
+
+`\(H_1: \beta_1 \ne 0\)`
+
+Likelihood ratio statistics
+
+likelihood function for model when `\(\beta_1 =0\)`, which we call it as a restricted model
+
+likelihood function for the model when `\(\beta_1 \ne 0\)`, which we call it as unrestricted model 
+
+`$$LR = 2(L_{ur} - L_r) \sim \chi^2(df=q), \text{ q is the number of independent variable dropped}$$`
+`$$\text{Pseudo }R^2 = 1- \frac{L_{ur}}{L_r}$$`
+
+---
+
+# Example
+
+
+
+```r
+mglm2 &lt;- glm(admit ~ gpa, family = "binomial", data = mydata)
+logLik(mglm2)
+```
+
+```
+'log Lik.' -243.4838 (df=2)
+```
+
+```r
+1-mglm2$deviance/mglm2$null.deviance
+```
+
+```
+[1] 0.02601901
+```
+
+---
+
+# How to test the significance of the coefficient
+
+.pull-left[
+
+Given that `\(log(\frac{p(y =1)}{1-p(y=1)}) \text{ is a linear function}\)`, 
+
+ `$$\beta s \sim \text{t distribution, df = n-p-1}$$`
+ `$$t = \frac{\beta_s - 0}{se_{\beta s}}$$`
+ 
+
+```r
+mglm2 &lt;- glm(admit ~ gpa, family = "binomial",
+             data = mydata)
+summary(mglm2)
+```
+ ]
+ 
+ 
+ 
+ .pull-right[
+ 
+
+```
+
+Call:
+glm(formula = admit ~ gpa, family = "binomial", data = mydata)
+
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-1.1131  -0.8874  -0.7566   1.3305   1.9824  
+
+Coefficients:
+            Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)  -4.3576     1.0353  -4.209 2.57e-05 ***
+*gpa           1.0511     0.2989   3.517 0.000437 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 499.98  on 399  degrees of freedom
+Residual deviance: 486.97  on 398  degrees of freedom
+AIC: 490.97
+
+Number of Fisher Scoring iterations: 4
+```
+ 
+]
+
+---
+
+# How to interpret coefficient 
+
+`$$log(\frac{p}{1-p}) = \beta_0 + \beta_1x_i + ... \beta_nx_n$$`
+`$$\frac{p}{1-p} \text{ is odds}$$` 
+.pull-left[
+suppose `\(x_i\)` equal `\(a\)` (a constant) then 
+
+`$$log(odds|a) = \beta_0 + \beta_1a + ... \beta_nx_n (1)$$` 
+
+now, `\(x_i\)` equal `\(a+1\)` then 
+
+`$$log(odds|a+1) = \beta_0 + \beta_1(a+1) + ... \beta_nx_n (2)$$`
+]
+
+.pull-right[
+use (2)-(1), we obtain that 
+
+`$$log(odds|a+1) - log(odds|a) = \beta_1$$`
+
+`$$log(\frac{odds|a+1}{odds|a}) = \beta_1$$`
+`$$\frac{odds|a+1}{odds|a}=e^{\beta_1}$$`
+`\(e^\beta_1\)` is the .red[odds ratio] in responding to 1 unit increase in `\(x_1\)`
+]
+---
+
+# Example 1
+
+.pull-left[
+
+
+```
+
+Call:
+*glm(formula = admit ~ gpa, family = "binomial", data = mydata)
+
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-1.1131  -0.8874  -0.7566   1.3305   1.9824  
+
+Coefficients:
+            Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)  -4.3576     1.0353  -4.209 2.57e-05 ***
+*gpa           1.0511     0.2989   3.517 0.000437 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 499.98  on 399  degrees of freedom
+Residual deviance: 486.97  on 398  degrees of freedom
+AIC: 490.97
+
+Number of Fisher Scoring iterations: 4
+```
+
+]
+
+.pull-right[
+
+
+```r
+options(scipen = 999)
+exp(mglm2$coefficients)
+```
+
+```
+(Intercept)         gpa 
+ 0.01280926  2.86082123 
+```
+
+```r
+exp(mglm2$coefficients)*100 # In percentage
+```
+
+```
+(Intercept)         gpa 
+   1.280926  286.082123 
+```
+
+```r
+exp(mglm2$coefficients[[2]])*100 - 100 # In percentage
+```
+
+```
+[1] 186.0821
+```
+
+If GPA increases by 1 point, the odds of being admitted to graduate school increases by .red[186%]
+]
+
+---
+
+# Example 2
+
+
+```r
+mglm3 &lt;- glm(admit ~ gpa + gre, family = "binomial", 
+             data = mydata)
+summary(mglm3)
+```
+
+```
+
+Call:
+*glm(formula = admit ~ gpa + gre, family = "binomial", data = mydata)
+
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-1.2730  -0.8988  -0.7206   1.3013   2.0620  
+
+Coefficients:
+             Estimate Std. Error z value   Pr(&gt;|z|)    
+(Intercept) -4.949378   1.075093  -4.604 0.00000415 ***
+*gpa          0.754687   0.319586   2.361     0.0182 *  
+gre          0.002691   0.001057   2.544     0.0109 *  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 499.98  on 399  degrees of freedom
+Residual deviance: 480.34  on 397  degrees of freedom
+AIC: 486.34
+
+Number of Fisher Scoring iterations: 4
+```
+
+---
+
+
+```r
+options(scipen = 999)
+confint(mglm3)
+```
+
+```
+                    2.5 %       97.5 %
+(Intercept) -7.1092205752 -2.886726963
+gpa          0.1347509288  1.390131131
+gre          0.0006373958  0.004791712
+```
+
+```r
+exp(coef(mglm3))
+```
+
+```
+(Intercept)         gpa         gre 
+0.007087816 2.126945379 1.002694307 
+```
+
+```r
+exp(cbind(coef(mglm3),confint(mglm3)))
+```
+
+```
+                               2.5 %     97.5 %
+(Intercept) 0.007087816 0.0008175319 0.05575841
+gpa         2.126945379 1.1442517487 4.01537656
+gre         1.002694307 1.0006375990 1.00480321
+```
+
+---
+
+# Group exercise 
+
+Use the following data to conduct the analysis
+
+
+```r
+mroz &lt;- foreign::read.dta("http://fmwww.bc.edu/ec-p/data/wooldridge/mroz.dta") %&gt;%
+  mutate(lhwage = log(huswage))
+head(mroz) %&gt;%
+stargazer::stargazer(summary = FALSE, type = "html")
+```
+
+
+&lt;table style="text-align:center"&gt;&lt;tr&gt;&lt;td colspan="24" style="border-bottom: 1px solid black"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style="text-align:left"&gt;&lt;/td&gt;&lt;td&gt;inlf&lt;/td&gt;&lt;td&gt;hours&lt;/td&gt;&lt;td&gt;kidslt6&lt;/td&gt;&lt;td&gt;kidsge6&lt;/td&gt;&lt;td&gt;age&lt;/td&gt;&lt;td&gt;educ&lt;/td&gt;&lt;td&gt;wage&lt;/td&gt;&lt;td&gt;repwage&lt;/td&gt;&lt;td&gt;hushrs&lt;/td&gt;&lt;td&gt;husage&lt;/td&gt;&lt;td&gt;huseduc&lt;/td&gt;&lt;td&gt;huswage&lt;/td&gt;&lt;td&gt;faminc&lt;/td&gt;&lt;td&gt;mtr&lt;/td&gt;&lt;td&gt;motheduc&lt;/td&gt;&lt;td&gt;fatheduc&lt;/td&gt;&lt;td&gt;unem&lt;/td&gt;&lt;td&gt;city&lt;/td&gt;&lt;td&gt;exper&lt;/td&gt;&lt;td&gt;nwifeinc&lt;/td&gt;&lt;td&gt;lwage&lt;/td&gt;&lt;td&gt;expersq&lt;/td&gt;&lt;td&gt;lhwage&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td colspan="24" style="border-bottom: 1px solid black"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style="text-align:left"&gt;1&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;1,610&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;td&gt;32&lt;/td&gt;&lt;td&gt;12&lt;/td&gt;&lt;td&gt;3.354&lt;/td&gt;&lt;td&gt;2.650&lt;/td&gt;&lt;td&gt;2,708&lt;/td&gt;&lt;td&gt;34&lt;/td&gt;&lt;td&gt;12&lt;/td&gt;&lt;td&gt;4.029&lt;/td&gt;&lt;td&gt;16,310&lt;/td&gt;&lt;td&gt;0.721&lt;/td&gt;&lt;td&gt;12&lt;/td&gt;&lt;td&gt;7&lt;/td&gt;&lt;td&gt;5&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;td&gt;14&lt;/td&gt;&lt;td&gt;10.910&lt;/td&gt;&lt;td&gt;1.210&lt;/td&gt;&lt;td&gt;196&lt;/td&gt;&lt;td&gt;1.393&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;2&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;1,656&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;td&gt;2&lt;/td&gt;&lt;td&gt;30&lt;/td&gt;&lt;td&gt;12&lt;/td&gt;&lt;td&gt;1.389&lt;/td&gt;&lt;td&gt;2.650&lt;/td&gt;&lt;td&gt;2,310&lt;/td&gt;&lt;td&gt;30&lt;/td&gt;&lt;td&gt;9&lt;/td&gt;&lt;td&gt;8.442&lt;/td&gt;&lt;td&gt;21,800&lt;/td&gt;&lt;td&gt;0.661&lt;/td&gt;&lt;td&gt;7&lt;/td&gt;&lt;td&gt;7&lt;/td&gt;&lt;td&gt;11&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;5&lt;/td&gt;&lt;td&gt;19.500&lt;/td&gt;&lt;td&gt;0.329&lt;/td&gt;&lt;td&gt;25&lt;/td&gt;&lt;td&gt;2.133&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;3&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;1,980&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;3&lt;/td&gt;&lt;td&gt;35&lt;/td&gt;&lt;td&gt;12&lt;/td&gt;&lt;td&gt;4.545&lt;/td&gt;&lt;td&gt;4.040&lt;/td&gt;&lt;td&gt;3,072&lt;/td&gt;&lt;td&gt;40&lt;/td&gt;&lt;td&gt;12&lt;/td&gt;&lt;td&gt;3.581&lt;/td&gt;&lt;td&gt;21,040&lt;/td&gt;&lt;td&gt;0.692&lt;/td&gt;&lt;td&gt;12&lt;/td&gt;&lt;td&gt;7&lt;/td&gt;&lt;td&gt;5&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;td&gt;15&lt;/td&gt;&lt;td&gt;12.040&lt;/td&gt;&lt;td&gt;1.514&lt;/td&gt;&lt;td&gt;225&lt;/td&gt;&lt;td&gt;1.276&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;4&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;456&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;td&gt;3&lt;/td&gt;&lt;td&gt;34&lt;/td&gt;&lt;td&gt;12&lt;/td&gt;&lt;td&gt;1.097&lt;/td&gt;&lt;td&gt;3.250&lt;/td&gt;&lt;td&gt;1,920&lt;/td&gt;&lt;td&gt;53&lt;/td&gt;&lt;td&gt;10&lt;/td&gt;&lt;td&gt;3.542&lt;/td&gt;&lt;td&gt;7,300&lt;/td&gt;&lt;td&gt;0.781&lt;/td&gt;&lt;td&gt;7&lt;/td&gt;&lt;td&gt;7&lt;/td&gt;&lt;td&gt;5&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;td&gt;6&lt;/td&gt;&lt;td&gt;6.800&lt;/td&gt;&lt;td&gt;0.092&lt;/td&gt;&lt;td&gt;36&lt;/td&gt;&lt;td&gt;1.265&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;5&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;1,568&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;2&lt;/td&gt;&lt;td&gt;31&lt;/td&gt;&lt;td&gt;14&lt;/td&gt;&lt;td&gt;4.592&lt;/td&gt;&lt;td&gt;3.600&lt;/td&gt;&lt;td&gt;2,000&lt;/td&gt;&lt;td&gt;32&lt;/td&gt;&lt;td&gt;12&lt;/td&gt;&lt;td&gt;10&lt;/td&gt;&lt;td&gt;27,300&lt;/td&gt;&lt;td&gt;0.622&lt;/td&gt;&lt;td&gt;12&lt;/td&gt;&lt;td&gt;14&lt;/td&gt;&lt;td&gt;9.500&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;7&lt;/td&gt;&lt;td&gt;20.100&lt;/td&gt;&lt;td&gt;1.524&lt;/td&gt;&lt;td&gt;49&lt;/td&gt;&lt;td&gt;2.303&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="text-align:left"&gt;6&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;2,032&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;td&gt;54&lt;/td&gt;&lt;td&gt;12&lt;/td&gt;&lt;td&gt;4.742&lt;/td&gt;&lt;td&gt;4.700&lt;/td&gt;&lt;td&gt;1,040&lt;/td&gt;&lt;td&gt;57&lt;/td&gt;&lt;td&gt;11&lt;/td&gt;&lt;td&gt;6.711&lt;/td&gt;&lt;td&gt;19,495&lt;/td&gt;&lt;td&gt;0.692&lt;/td&gt;&lt;td&gt;14&lt;/td&gt;&lt;td&gt;7&lt;/td&gt;&lt;td&gt;7.500&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;33&lt;/td&gt;&lt;td&gt;9.859&lt;/td&gt;&lt;td&gt;1.556&lt;/td&gt;&lt;td&gt;1,089&lt;/td&gt;&lt;td&gt;1.904&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td colspan="24" style="border-bottom: 1px solid black"&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+The meaning of the variables could be found: https://rdrr.io/cran/wooldridge/man/mroz.html
+---
+
+# Group exercise
+
+1. conduct the univariate analysis of the variables `inlf`, `kidslt6`, `faminc`, and `age`
+
+2. Perform bivariate analysis between `inlf` and `kidslt6`; `inlf` and `faminc`; `inlf` and `age`
+
+3. Perform the following logistic regression model 
+
+  1. model 1: `inlf` against  `kidslt6`; what is the odds ratio; how do you interpret the odds ratio
+  
+  2. model 2: `inlf` against all other variables; what are the odds ratios; how do you interpret them
+  
+---
+
+class: middle, center, inverse
+
+# .large[Thank you!]
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
+// screen reader (see PR #262)
+(function(d) {
+  let res = {};
+  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
+    const t = tr.querySelector('td:nth-child(2)').innerText;
+    tr.querySelectorAll('td:first-child .key').forEach(key => {
+      const k = key.innerText;
+      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
+    });
+  });
+  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
+})(document);
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
