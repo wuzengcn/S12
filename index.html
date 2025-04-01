@@ -4,7 +4,7 @@
     <title>Session 12. Logistic regression</title>
     <meta charset="utf-8" />
     <meta name="author" content="Wu Zeng, MD, PhD" />
-    <script src="libs/header-attrs-2.14/header-attrs.js"></script>
+    <script src="libs/header-attrs-2.22/header-attrs.js"></script>
     <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
     <link href="libs/remark-css-0.0.1/rladies.css" rel="stylesheet" />
     <link href="libs/remark-css-0.0.1/rladies-fonts.css" rel="stylesheet" />
@@ -32,7 +32,7 @@ class: title-slide, center, middle, inverse
 
 #### Georgetown University
 
-### April 17 2023
+### April 3 2025
 
 ---
 
@@ -261,18 +261,14 @@ summary(mglm2)
 Call:
 glm(formula = admit ~ gpa, family = "binomial", data = mydata)
 
-Deviance Residuals: 
-    Min       1Q   Median       3Q      Max  
--1.1131  -0.8874  -0.7566   1.3305   1.9824  
-
 Coefficients:
             Estimate Std. Error z value Pr(&gt;|z|)    
 (Intercept)  -4.3576     1.0353  -4.209 2.57e-05 ***
-*gpa           1.0511     0.2989   3.517 0.000437 ***
+gpa           1.0511     0.2989   3.517 0.000437 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-(Dispersion parameter for binomial family taken to be 1)
+*(Dispersion parameter for binomial family taken to be 1)
 
     Null deviance: 499.98  on 399  degrees of freedom
 Residual deviance: 486.97  on 398  degrees of freedom
@@ -320,18 +316,14 @@ use (2)-(1), we obtain that
 Call:
 *glm(formula = admit ~ gpa, family = "binomial", data = mydata)
 
-Deviance Residuals: 
-    Min       1Q   Median       3Q      Max  
--1.1131  -0.8874  -0.7566   1.3305   1.9824  
-
 Coefficients:
             Estimate Std. Error z value Pr(&gt;|z|)    
 (Intercept)  -4.3576     1.0353  -4.209 2.57e-05 ***
-*gpa           1.0511     0.2989   3.517 0.000437 ***
+gpa           1.0511     0.2989   3.517 0.000437 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-(Dispersion parameter for binomial family taken to be 1)
+*(Dispersion parameter for binomial family taken to be 1)
 
     Null deviance: 499.98  on 399  degrees of freedom
 Residual deviance: 486.97  on 398  degrees of freedom
@@ -391,18 +383,14 @@ summary(mglm3)
 Call:
 *glm(formula = admit ~ gpa + gre, family = "binomial", data = mydata)
 
-Deviance Residuals: 
-    Min       1Q   Median       3Q      Max  
--1.2730  -0.8988  -0.7206   1.3013   2.0620  
-
 Coefficients:
              Estimate Std. Error z value   Pr(&gt;|z|)    
 (Intercept) -4.949378   1.075093  -4.604 0.00000415 ***
-*gpa          0.754687   0.319586   2.361     0.0182 *  
+gpa          0.754687   0.319586   2.361     0.0182 *  
 gre          0.002691   0.001057   2.544     0.0109 *  
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
+*
 (Dispersion parameter for binomial family taken to be 1)
 
     Null deviance: 499.98  on 399  degrees of freedom
